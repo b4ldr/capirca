@@ -48,6 +48,11 @@ header {
   target:: juniper test-filter inet6
 }
 """
+GOOD_HEADER_MIXED = """
+header {
+  target:: juniper test-filter mixed
+}
+"""
 GOOD_HEADER_BRIDGE = """
 header {
   target:: juniper test-filter bridge
@@ -1022,6 +1027,20 @@ class JuniperTest(unittest.TestCase):
 
     self.naming.GetServiceByProto.assert_has_calls([
         mock.call('DNS', 'tcp'), mock.call('DNS', 'udp')])
+
+  def testMixedFilterInetType(self):
+    self.naming.GetNetAddr.return_value = [
+        nacaddr.IPv4('127.0.0.1'), nacaddr.IPv6('::1/128')]
+
+    jcl = juniper.Juniper(policy.ParsePolicy(
+        GOOD_HEADER_MIXED + GOOD_TERM_12, self.naming), EXP_INFO)
+    output = str(jcl)
+    self.assertIn('test-filter4', output, output)
+    self.assertIn('127.0.0.1', output, output)
+    self.assertIn('test-filter6', output, output)
+    self.assertIn('::1/128', output, output)
+
+    self.naming.GetNetAddr.assert_called_once_with('LOCALHOST')
 
   def testBridgeFilterInetType(self):
     self.naming.GetNetAddr.return_value = [
